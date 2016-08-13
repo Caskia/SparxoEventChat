@@ -30,16 +30,20 @@ namespace SparxoChat.Hubs
         }
 
 
-        public void Send(string name, string message)
+        public void SendMessageInRoom(string roomName, string message)
         {
-            // Call the broadcastMessage method to update clients.
-            Clients.All.broadcastMessage(name, message);
+            var user = _repository.GetChatUserByConnectionId(Context.ConnectionId);
+            if (user == null)
+            {
+                throw new Exception("You should logon! ");
+            }
+            Clients.Group(roomName).roomMessage(roomName, user.Username, message);
         }
 
         public void LogOn(string username)
         {
             ChatUser user = new ChatUser()
-            {              
+            {
                 Id = Guid.NewGuid().ToString(),
                 Username = username
             };
@@ -48,12 +52,22 @@ namespace SparxoChat.Hubs
             Clients.All.joins(user.Id, username, DateTime.Now);
         }
 
-        public async Task JoinEventChatRoom(string roomName){
-            if(!_eventChatRooms.Contains(roomName)){
+        public async Task JoinEventChatRoom(string roomName)
+        {
+            if (!_eventChatRooms.Contains(roomName))
+            {
                 throw new Exception($"Room[{roomName}] not found! ");
             }
-            await Groups.Add(Context.ConnectionId,roomName);
             var user = _repository.GetChatUserByConnectionId(Context.ConnectionId);
+            if (user == null)
+            {
+                throw new Exception("You should logon! ");
+            }
+            if (!user.Rooms.Contains(roomName))
+            {
+                user.Rooms.Add(roomName);
+            }
+            await Groups.Add(Context.ConnectionId, roomName);
             Clients.Group(roomName).newUserJoinedEventChatRoom(roomName, user.Username);
         }
 
@@ -65,7 +79,7 @@ namespace SparxoChat.Hubs
             {
                 _repository.Remove(user);
                 _repository.RemoveMapping(Context.ConnectionId);
-                Clients.All.leaves(user.Id, user.Username, DateTime.Now);
+                Clients.Groups(user.Rooms).leaves(user.Id, user.Username, DateTime.Now);
             }
             return base.OnDisconnected(stopCalled);
         }

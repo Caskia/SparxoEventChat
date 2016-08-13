@@ -10,5 +10,6 @@ namespace SparxoEventChat.Model
         public string Id { get; set; }
         public string Username { get; set; }
 
+        public IList<string> Rooms { get; set; } = new List<string>();
     }
 }
