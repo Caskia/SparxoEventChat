@@ -21,6 +21,7 @@ namespace SparxoChat
             var host = new WebHostBuilder()
                 .UseConfiguration(config)
                 .UseKestrel()
+                .UseUrls("http://*:5010")
                 //.UseUrls("http://*", "https://*")
                 .UseContentRoot(Directory.GetCurrentDirectory())
                 .UseIISIntegration()
