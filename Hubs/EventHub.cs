@@ -1,56 +1,32 @@
+using Microsoft.AspNetCore.SignalR;
+using SparxoEventChat.Model;
+using SparxoEventChat.Repository;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.SignalR;
 using System.Linq;
-using SparxoEventChat.Repository;
-using SparxoEventChat.Model;
+using System.Threading.Tasks;
 
 namespace SparxoChat.Hubs
 {
     public class EventHub : Hub
     {
         #region Fields
+
         private readonly List<string> _eventChatRooms = new List<string>();
         private InMemoryRepository _repository;
-        #endregion
+
+        #endregion Fields
 
         #region Ctor
+
         public EventHub()
         {
             _repository = InMemoryRepository.GetInstance();
+            InitEventChatRooms();
         }
 
-        #endregion
-
-        public List<string> LoadEventChatRooms()
-        {
-            return _eventChatRooms;
-        }
-
-
-        public void SendMessageInRoom(string roomName, string message)
-        {
-            var user = _repository.GetChatUserByConnectionId(Context.ConnectionId);
-            if (user == null)
-            {
-                throw new Exception("You should logon! ");
-            }
-            Clients.Group(roomName).roomMessage(roomName, user.Username, message);
-        }
-
-        public void LogOn(string username)
-        {
-            ChatUser user = new ChatUser()
-            {
-                Id = Guid.NewGuid().ToString(),
-                Username = username
-            };
-            _repository.Add(user);
-            _repository.AddMapping(Context.ConnectionId, user.Id);
-            Clients.All.joins(user.Id, username, DateTime.Now);
-        }
+        #endregion Ctor
 
         public async Task JoinEventChatRoom(string roomName)
         {
@@ -71,7 +47,35 @@ namespace SparxoChat.Hubs
             Clients.Group(roomName).newUserJoinedEventChatRoom(roomName, user.Username);
         }
 
-        #region  Connect Event Handler Methods
+        public List<string> LoadEventChatRooms()
+        {
+            return _eventChatRooms;
+        }
+
+        public void LogOn(string username)
+        {
+            ChatUser user = new ChatUser()
+            {
+                Id = Guid.NewGuid().ToString(),
+                Username = username
+            };
+            _repository.Add(user);
+            _repository.AddMapping(Context.ConnectionId, user.Id);
+            Clients.All.joins(user.Id, username, DateTime.Now);
+        }
+
+        public void SendMessageInRoom(string roomName, string message)
+        {
+            var user = _repository.GetChatUserByConnectionId(Context.ConnectionId);
+            if (user == null)
+            {
+                throw new Exception("You should logon! ");
+            }
+            Clients.Group(roomName).roomMessage(roomName, user.Username, message);
+        }
+
+        #region Connect Event Handler Methods
+
         public override Task OnDisconnected(bool stopCalled)
         {
             var user = _repository.GetChatUserByConnectionId(Context.ConnectionId);
@@ -84,10 +88,10 @@ namespace SparxoChat.Hubs
             return base.OnDisconnected(stopCalled);
         }
 
-        #endregion
-
+        #endregion Connect Event Handler Methods
 
         #region Utilities
+
         private void InitEventChatRooms()
         {
             _eventChatRooms.Add("1");
@@ -97,6 +101,6 @@ namespace SparxoChat.Hubs
             _eventChatRooms.Add("5");
         }
 
-        #endregion
+        #endregion Utilities
     }
 }

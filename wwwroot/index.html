@@ -3,24 +3,33 @@
 
 <head>
     <title>SignalR Simple Chat</title>
-    <style type="text/css">
-        .container {
-            background-color: #99CCFF;
-            border: thick solid #808080;
-            padding: 20px;
-            margin: 20px;
-        }
-    </style>
 </head>
 
 <body>
-    <div class="container">
-        <input type="text" id="message" />
-        <input type="button" id="sendmessage" value="Send" />
-        <input type="hidden" id="displayname" />
-        <ul id="discussion">
-        </ul>
+    <div>
+        <label>username</label>
+        <input type="text" id="username" />
+        <button type="button" id="btnLogin">login</button>
     </div>
+    <div>
+        <h2>
+            rooms
+        </h2>
+        <ul id="rooms"></ul>
+        <label>room:</label><span id="room"></span>
+        <ul id="roomInfo"></ul>
+    </div>
+
+    <div class="container">
+        <h2>
+            messages
+        </h2>
+        <input type="text" id="message" />
+        <input type="button" id="sendmessage" value="send" />
+        <ul id="discussion"></ul>
+    </div>
+
+    <ul id="log"></ul>
     <!--Script references. -->
     <!--Reference the jQuery library. -->
     <script src="Scripts/jquery-1.8.2.js"></script>
@@ -31,33 +40,51 @@
     <!--Add script to update the page and send messages.-->
     <script type="text/javascript">
         $(function () {
-            // Declare a proxy to reference the hub. 
+            // Declare a proxy to reference the hub.
             var event = $.connection.eventHub;
 
+            event.client.joins = function (userId, username, time) {
+                $('#log').append('<li>login info: ' + userId + '&nbsp;' + username + '&nbsp;' + time + '</li>');
+            }
 
-            event.client.roomMessage = function (roomName, username, message){
+            event.client.newUserJoinedEventChatRoom = function (roomName, username) {
+                $('#roomInfo').append('<li>' + roomName + ':' + username + 'joined! </li>');
+            };
+
+            event.client.roomMessage = function (roomName, username, message) {
                 var encodeRoomName = $('<div />').text(roomName).html();
                 var encodedUsername = $('<div />').text(username).html();
                 var encodedMsg = $('<div />').text(message).html();
-                $('#discussion').append('<li><strong>'+encodeRoomName+'</strong>:&nbsp;&nbsp;<strong>' + encodedUsername
-                    + '</strong>:&nbsp;&nbsp;' + encodedMsg + '</li>');
+                $('#discussion').append('<li><strong>room: ' + encodeRoomName + '</strong>&nbsp<strong>' + encodedUsername
+                    + '</strong>:&nbsp;' + encodedMsg + '</li>');
             }
-
-            // Get the user name and store it to prepend to messages.
-            $('#displayname').val(prompt('Enter your name:', ''));
-            // Set initial focus to message input box.  
-            $('#message').focus();
             // Start the connection.
             $.connection.hub.start().done(function () {
+                $('#btnLogin').click(function () {
+                    console.log('logon');
+                    event.server.logOn($('#username').val()).done(function () {
+                        console.log('get rooms');
+                        event.server.loadEventChatRooms().done(function (rooms) {
+                            $('#rooms').empty();
+                            for (var i = 0; i < rooms.length; i++) {
+                                $('#rooms').append('<li><a href="#">' + rooms[i] + '</a></li>');
+                            }
+                            $('#rooms a').click(function () {
+                                console.log('join room[' + $(this).text() + ']');
+                                event.server.joinEventChatRoom($(this).text());
+                                $('#room').text($(this).text());
+                            });
+                        });
+                    });
+                });
+
                 $('#sendmessage').click(function () {
-                    // Call the Send method on the hub. 
-                    chat.server.send($('#displayname').val(), $('#message').val());
-                    // Clear text box and reset focus for next comment. 
+                    console.log('send message');
+                    event.server.sendMessageInRoom($('#room').text(), $('#message').val());
                     $('#message').val('').focus();
                 });
             });
         });
     </script>
 </body>
-
 </html>
