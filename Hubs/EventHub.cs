@@ -67,6 +67,10 @@ namespace SparxoChat.Hubs
         public void SendMessageInRoom(string roomName, string message)
         {
             var user = _repository.GetChatUserByConnectionId(Context.ConnectionId);
+            if (string.IsNullOrEmpty(roomName))
+            {
+                throw new Exception("You should join a room! ");
+            }
             if (user == null)
             {
                 throw new Exception("You should logon! ");
